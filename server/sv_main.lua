@@ -1,4 +1,5 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local SecurityToken = nil
 
 -- Handle item selling to shop
 RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, itemName, itemAmount, basePrice)
@@ -69,8 +70,16 @@ RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, i
 end)
 
 -- Synchronizes doors with ox_doorlock based on game-time state
-RegisterNetEvent('qb-pawnshop:server:syncDoors', function(state)
+RegisterNetEvent('qb-pawnshop:server:syncDoors', function(token, state)
     if not Config.EnableDoorLock then return end
+    local src = source
+
+    -- Token Security Check
+    if token ~= SecurityToken then
+        exploitBan(src, 'syncDoors Invalid Security Token')
+        return
+    end
+
     for _, shop in pairs(Config.PawnLocation) do
         if shop.doors then
             for _, doorId in pairs(shop.doors) do
@@ -78,4 +87,14 @@ RegisterNetEvent('qb-pawnshop:server:syncDoors', function(state)
             end
         end
     end
+end)
+
+-- Token Generation
+CreateThread(function()
+    SecurityToken = "PawnShop_" .. math.random(100, 999) .. "_" .. math.random(1000, 9999)
+end)
+
+-- Provide token to client via callback
+lib.callback.register('qb-pawnshop:server:getToken', function(source)
+    return SecurityToken
 end)

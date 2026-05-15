@@ -1,9 +1,16 @@
+-- [[ QB-Pawnshop Rework - Client Side ]]
 local QBCore = exports['qb-core']:GetCoreObject()
-local Peds = {}
-local Zones = {}
+
+-- [[ Global Variables (Accessible across client files) ]]
+SecurityToken = nil
+Peds = {}
+Zones = {}
 
 --- Spawns Peds, Blips, and sets up interactions
 local function initInteractions()
+    -- Fetch Security Token once on start
+    SecurityToken = lib.callback.await('qb-pawnshop:server:getToken', false)
+    
     for shopIndex, shop in pairs(Config.PawnLocation) do
         -- 1. Create Blips
         if shop.locations and shop.blip then
