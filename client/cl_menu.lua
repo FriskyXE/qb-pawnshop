@@ -52,11 +52,14 @@ RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
         for i = 1, #shopInventory do
             local itemData = shopInventory[i]
             if v.name == itemData.name then
-                local currentBuyPrice = shopData[v.name].buyPrice
+                local currentData = shopData[v.name]
+                local currentBuyPrice = currentData.buyPrice
+                local isHot = currentData.isHot
+
                 options[#options + 1] = {
-                    title = v.label,
-                    description = string.format("Shop buys for: **$%s**\nShop Stock: **%s**", currentBuyPrice, shopData[v.name].stock),
-                    icon = 'fas fa-arrow-right',
+                    title = (isHot and "🔥 " or "") .. v.label,
+                    description = string.format("%sPrice: **$%s**\nShop Stock: **%s**", (isHot and "**HOT DEAL!**\n" or ""), currentBuyPrice, currentData.stock),
+                    icon = isHot and 'fas fa-fire' or 'fas fa-arrow-right',
                     event = 'qb-pawnshop:client:pawnitems',
                     args = { label = v.label, price = itemData.price, name = v.name, count = v.count, shopIndex = shopIndex }
                 }
@@ -84,10 +87,11 @@ RegisterNetEvent('qb-pawnshop:client:openBuyMenu', function(data)
     for _, item in pairs(shopInventory) do
         local stockData = shopData[item.name]
         if stockData and stockData.stock > 0 then
+            local isHot = stockData.isHot
             options[#options + 1] = {
-                title = QBCore.Shared.Items[item.name].label,
-                description = string.format("Buy for: **$%s**\nAvailable: **%s**", stockData.sellPrice, stockData.stock),
-                icon = 'fas fa-tag',
+                title = (isHot and "🔥 " or "") .. QBCore.Shared.Items[item.name].label,
+                description = string.format("%sBuy for: **$%s**\nAvailable: **%s**", (isHot and "**HOT DEAL!**\n" or ""), stockData.sellPrice, stockData.stock),
+                icon = isHot and 'fas fa-fire' or 'fas fa-tag',
                 event = 'qb-pawnshop:client:buyItems',
                 args = { name = item.name, label = QBCore.Shared.Items[item.name].label, price = item.price, stock = stockData.stock, shopIndex = shopIndex }
             }

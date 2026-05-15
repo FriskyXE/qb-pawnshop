@@ -1,4 +1,31 @@
 local ShopStocks = {}
+local HotDeals = {}
+
+--- Picks random items from each shop's inventory to be "Hot Deals"
+local function refreshHotDeals()
+    if not Config.EnableHotDeals then return end
+    HotDeals = {}
+    for shopId, shop in pairs(Config.PawnLocation) do
+        local inv = shop.inventory
+        if inv and #inv > 0 then
+            HotDeals[shopId] = {}
+            local picked = {}
+            local count = 0
+            
+            -- Pick unique random items
+            while count < Config.HotDealCount and count < #inv do
+                local randomIndex = math.random(1, #inv)
+                local itemName = inv[randomIndex].name
+                if not picked[itemName] then
+                    picked[itemName] = true
+                    HotDeals[shopId][itemName] = true
+                    count = count + 1
+                end
+            end
+        end
+    end
+    print("^2[qb-pawnshop] Daily Hot Deals have been refreshed!^7")
+end
 
 --- Creates stocks table and loads existing data
 MySQL.ready(function()
@@ -18,6 +45,9 @@ MySQL.ready(function()
             ShopStocks[row.shop_id][row.item_name] = row.count
         end
     end
+    
+    -- Initialize hot deals on startup
+    refreshHotDeals()
 end)
 
 -- [[ Stock Helpers ]]
@@ -38,14 +68,24 @@ function updateStock(shopId, itemName, amount)
 end
 
 function calculatePrices(shopId, itemName, basePrice)
-    if not Config.EnableDynamicPrice then return basePrice, math.floor(basePrice * Config.SellMargin) end
+    local buyPrice = basePrice
     
-    local stock = getStock(shopId, itemName)
-    local buyPrice = basePrice * (1.0 - (stock * Config.DynamicPriceScale))
-    local minPrice = basePrice * Config.MinPricePercent
-    if buyPrice < minPrice then buyPrice = minPrice end
+    -- 1. Apply Dynamic Scaling
+    if Config.EnableDynamicPrice then
+        local stock = getStock(shopId, itemName)
+        buyPrice = basePrice * (1.0 - (stock * Config.DynamicPriceScale))
+        local minPrice = basePrice * Config.MinPricePercent
+        if buyPrice < minPrice then buyPrice = minPrice end
+    end
+
+    -- 2. Apply Hot Deal Multiplier (Always applies to the current calculated buy price)
+    local isHot = HotDeals[shopId] and HotDeals[shopId][itemName]
+    if isHot then
+        buyPrice = buyPrice * Config.HotDealMultiplier
+    end
+    
     local sellPrice = math.floor(buyPrice * Config.SellMargin)
-    return math.floor(buyPrice), sellPrice
+    return math.floor(buyPrice), sellPrice, isHot
 end
 
 -- [[ Callbacks ]]
@@ -57,8 +97,21 @@ end)
 lib.callback.register('qb-pawnshop:server:getShopData', function(source, shopIndex, inventory)
     local data = {}
     for _, item in pairs(inventory) do
-        local buy, sell = calculatePrices(shopIndex, item.name, item.price)
-        data[item.name] = { buyPrice = buy, sellPrice = sell, stock = getStock(shopIndex, item.name) }
+        local buy, sell, isHot = calculatePrices(shopIndex, item.name, item.price)
+        data[item.name] = { 
+            buyPrice = buy, 
+            sellPrice = sell, 
+            stock = getStock(shopIndex, item.name),
+            isHot = isHot
+        }
     end
     return data
+end)
+
+-- Refresh deals every 24 hours (86400 seconds)
+CreateThread(function()
+    while true do
+        Wait(86400000)
+        refreshHotDeals()
+    end
 end)

@@ -22,6 +22,11 @@ Config.SellMargin = 1.3          -- Profit Margin (1.3 = 30% profit) for players
 Config.DynamicPriceScale = 0.05    -- Price drop percentage (0.05 = 5%) for each item in shop stock
 Config.MinPricePercent = 0.5     -- Minimum price floor (0.5 = 50% of base price)
 
+-- [[ Hot Deal Settings ]] --
+Config.EnableHotDeals = true     -- Enable/Disable Daily Hot Deals
+Config.HotDealMultiplier = 1.5   -- Price multiplier for Hot Deals (1.5 = 50% extra)
+Config.HotDealCount = 2          -- Number of hot items per shop
+
 -- [[ Shop Locations ]] --
 Config.PawnLocation = {
     [1] = {
