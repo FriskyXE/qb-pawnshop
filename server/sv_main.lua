@@ -12,14 +12,6 @@ RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, 
         return
     end
 
-    -- Distance check
-    local playerCoords = GetEntityCoords(GetPlayerPed(src))
-    local shopCoords = Config.PawnLocation[shopIndex].locations[1]
-    if #(playerCoords - shopCoords) > Config.DistanceExploit then
-        exploitBan(src, 'sellPawnItems Distance Exploit')
-        return
-    end
-
     local buyPrice, _ = calculatePrices(shopIndex, itemName, basePrice)
     local totalPrice = (tonumber(itemAmount) * buyPrice)
     local itemLabel = exports.ox_inventory:GetItem(src, itemName).label
@@ -47,14 +39,6 @@ RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, i
     -- Token Security Check
     if token ~= SecurityToken then
         exploitBan(src, 'buyPawnItems Invalid Security Token')
-        return
-    end
-
-    -- Distance check
-    local playerCoords = GetEntityCoords(GetPlayerPed(src))
-    local shopCoords = Config.PawnLocation[shopIndex].locations[1]
-    if #(playerCoords - shopCoords) > Config.DistanceExploit then
-        exploitBan(src, 'buyPawnItems Distance Exploit')
         return
     end
 

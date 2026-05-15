@@ -4,7 +4,6 @@ Config = {}
 Config.UseTimes = false          -- Set to false if you want the pawnshop open 24/7
 Config.TimeOpen = 7              -- Opening Time (GTA Hour)
 Config.TimeClosed = 17           -- Closing Time (GTA Hour)
-Config.DistanceExploit = 10.0    -- Distance check for events (Security)
 
 -- [[ Feature Toggles ]] --
 Config.EnableBuy = true          -- Enable/Disable Second-hand system (Players buying from shop)
