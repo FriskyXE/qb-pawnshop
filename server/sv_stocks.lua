@@ -22,12 +22,12 @@ end)
 
 -- [[ Stock Helpers ]]
 
-local function getStock(shopId, itemName)
+function getStock(shopId, itemName)
     if not ShopStocks[shopId] then ShopStocks[shopId] = {} end
     return ShopStocks[shopId][itemName] or 0
 end
 
-local function updateStock(shopId, itemName, amount)
+function updateStock(shopId, itemName, amount)
     if not ShopStocks[shopId] then ShopStocks[shopId] = {} end
     ShopStocks[shopId][itemName] = (ShopStocks[shopId][itemName] or 0) + amount
     if ShopStocks[shopId][itemName] < 0 then ShopStocks[shopId][itemName] = 0 end
@@ -37,7 +37,7 @@ local function updateStock(shopId, itemName, amount)
     })
 end
 
-local function calculatePrices(shopId, itemName, basePrice)
+function calculatePrices(shopId, itemName, basePrice)
     local stock = getStock(shopId, itemName)
     local buyPrice = basePrice * (1.0 - (stock * Config.DynamicPriceScale))
     local minPrice = basePrice * Config.MinPricePercent
@@ -60,9 +60,3 @@ lib.callback.register('qb-pawnshop:server:getShopData', function(source, shopInd
     end
     return data
 end)
-
--- [[ Exports ]]
-
-exports('getStock', getStock)
-exports('updateStock', updateStock)
-exports('calculatePrices', calculatePrices)
