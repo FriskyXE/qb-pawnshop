@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 author 'Kakarot'
-description 'Allows players to sell items for money'
+description 'QB Pawnshop - ox_lib UI'
 version '1.2.0'
 
 shared_scripts {

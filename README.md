@@ -1,4 +1,4 @@
-# QB-Pawnshop Rework
+# QB Pawnshop - ox_lib UI
 
 Just a clean, simplified rework of the classic pawnshop script. I stripped out the old stuff and swapped it for the Overextended (ox) ecosystem. It's lighter, faster, and much easier to set up.
 
