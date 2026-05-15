@@ -5,10 +5,14 @@ Config.UseTimes = false          -- Set to false if you want the pawnshop open 2
 Config.TimeOpen = 7              -- Opening Time (GTA Hour)
 Config.TimeClosed = 17           -- Closing Time (GTA Hour)
 
--- [[ Feature Toggles ]] --
-Config.EnableBuy = true          -- Enable/Disable Second-hand system (Players buying from shop)
-Config.EnableDynamicPrice = true -- Enable/Disable Dynamic Price calculation based on stock
-Config.EnableDoorLock = true     -- Enable/Disable ox_doorlock integration
+-- [[ Features Configuration ]] --
+Config.Features = {
+    BuyItems = true,          -- Enable/Disable Second-hand system (Players buying from shop)
+    DynamicPrice = true,      -- Enable/Disable Dynamic Price calculation based on stock
+    DoorLock = true,          -- Enable/Disable ox_doorlock integration
+    HotDeals = true,          -- Enable/Disable Daily Hot Deals
+    Logging = true            -- Enable/Disable Discord Webhook logging
+}
 
 -- [[ Webhook Settings ]] --
 Config.Webhooks = {
@@ -23,7 +27,6 @@ Config.DynamicPriceScale = 0.05    -- Price drop percentage (0.05 = 5%) for each
 Config.MinPricePercent = 0.5     -- Minimum price floor (0.5 = 50% of base price)
 
 -- [[ Hot Deal Settings ]] --
-Config.EnableHotDeals = true     -- Enable/Disable Daily Hot Deals
 Config.HotDealMultiplier = 1.5   -- Price multiplier for Hot Deals (1.5 = 50% extra)
 Config.HotDealCount = 2          -- Number of hot items per shop
 

@@ -9,7 +9,9 @@ if Config.UseTimes then
 
                 if newState ~= lastDoorState then
                     lastDoorState = newState
-                    TriggerServerEvent('qb-pawnshop:server:syncDoors', SecurityToken, newState)
+                    if Config.Features.DoorLock then
+                        TriggerServerEvent('qb-pawnshop:server:syncDoors', SecurityToken, newState)
+                    end
                 end
             end
             Wait(10000)

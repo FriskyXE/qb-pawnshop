@@ -20,7 +20,7 @@ RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
         }
     }
 
-    if Config.EnableBuy then
+    if Config.Features.BuyItems then
         options[#options + 1] = {
             title = "Buy Items",
             description = "Purchase second-hand items from this shop",
@@ -77,7 +77,7 @@ RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
 end)
 
 RegisterNetEvent('qb-pawnshop:client:openBuyMenu', function(data)
-    if not Config.EnableBuy then return end
+    if not Config.Features.BuyItems then return end
     local shopIndex = data and data.shopIndex or 1
     local shop = Config.PawnLocation[shopIndex]
     local shopInventory = shop.inventory or {}
@@ -121,7 +121,7 @@ RegisterNetEvent('qb-pawnshop:client:pawnitems', function(item)
 end)
 
 RegisterNetEvent('qb-pawnshop:client:buyItems', function(item)
-    if not Config.EnableBuy then return end
+    if not Config.Features.BuyItems then return end
     local input = lib.inputDialog("Purchase Item", {
         { type = 'number', label = "Amount to buy", description = ("Available stock: %s"):format(item.stock), min = 1, max = item.stock, default = 1 }
     })
