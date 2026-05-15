@@ -1,10 +1,17 @@
+-- [[ QB-Pawnshop Rework - Client Side ]]
 local QBCore = exports['qb-core']:GetCoreObject()
+
+-- [[ Variables ]]
 local Peds = {}
 local Zones = {}
+local lastDoorState = nil
 
-local function createPawnInteractions()
+-- [[ Initialization ]]
+
+--- Spawns Peds, Blips, and sets up ox_target/ox_lib zones
+local function initInteractions()
     for shopIndex, shop in pairs(Config.PawnLocation) do
-        -- Create Blips
+        -- 1. Create Blips for locations
         if shop.locations and shop.blip then
             for _, loc in pairs(shop.locations) do
                 local blip = AddBlipForCoord(loc.x, loc.y, loc.z)
@@ -19,11 +26,11 @@ local function createPawnInteractions()
             end
         end
 
-        -- Create Targets/Peds/Zones
+        -- 2. Setup Targets or Zones
         if shop.targets then
             for _, target in pairs(shop.targets) do
                 if target.ped then
-                    -- NPC Ped Interaction (Uses ox_target on the entity)
+                    -- Interaction Mode: NPC
                     lib.requestModel(target.ped)
                     local ped = CreatePed(4, target.ped, target.loc.x, target.loc.y, target.loc.z - 1.0, target.heading or 0.0, false, false)
                     
@@ -31,15 +38,8 @@ local function createPawnInteractions()
                     SetPedAutoGiveScubaGearWhenEnteringWater(ped, false)
                     SetPedCanRagdollFromPlayerImpact(ped, false)
                     SetPedCanPlayAmbientAnims(ped, true)
-                    SetPedCanPlayAmbientBaseAnims(ped, true)
                     SetPedCanPlayGestureAnims(ped, true)
-                    SetPedCanPlayInjuredAnims(ped, true)
                     SetPedCanAttackFriendly(ped, false)
-                    SetPedCanBeTargetted(ped, true)
-                    SetPedCanBeTargettedByPlayer(ped, true)
-                    SetPedCanBeTargettedByTeam(ped, ped, false)
-                    SetPedCanUseAutoConversationLookat(ped, true)
-                    SetPedCanBeKnockedOffBike(ped, false)
                     SetBlockingOfNonTemporaryEvents(ped, true)
                     SetEntityInvincible(ped, true)
                     FreezeEntityPosition(ped, true)
@@ -60,7 +60,7 @@ local function createPawnInteractions()
                     })
                     Peds[#Peds + 1] = ped
                 elseif target.loc then
-                    -- Coordinate Interaction (Uses ox_lib box zone + TextUI)
+                    -- Interaction Mode: ox_lib Zone (Fallback)
                     Zones[#Zones + 1] = lib.zones.box({
                         coords = target.loc,
                         size = target.size or vec3(1.5, 1.5, 2.0),
@@ -87,23 +87,18 @@ local function createPawnInteractions()
     end
 end
 
-CreateThread(function()
-    createPawnInteractions()
-end)
+-- Start initialization
+CreateThread(initInteractions)
 
+--- Cleanup on resource stop
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    for i = 1, #Peds do
-        DeletePed(Peds[i])
-    end
-    for i = 1, #Zones do
-        if Zones[i].remove then
-            Zones[i]:remove()
-        end
-    end
+    for i = 1, #Peds do DeletePed(Peds[i]) end
+    for i = 1, #Zones do if Zones[i].remove then Zones[i]:remove() end end
 end)
 
-local lastDoorState = nil
+-- [[ Time & Door Management ]]
+
 if Config.UseTimes then
     CreateThread(function()
         while true do
@@ -115,17 +110,21 @@ if Config.UseTimes then
                 lastDoorState = newState
                 TriggerServerEvent('qb-pawnshop:server:syncDoors', newState)
             end
-            Wait(5000)
+            Wait(10000) -- Check every 10 seconds (optimized for resmon)
         end
     end)
 end
+
+-- [[ UI & Menu Events ]]
 
 RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
     local shopIndex = data and data.shopIndex or 1
     local shop = Config.PawnLocation[shopIndex]
 
+    -- Time Check
     if Config.UseTimes then
-        if GetClockHours() < Config.TimeOpen or GetClockHours() >= Config.TimeClosed then
+        local hour = GetClockHours()
+        if hour < Config.TimeOpen or hour >= Config.TimeClosed then
             lib.notify({
                 title = locale('menus.main_header'),
                 description = locale('notifications.pawn_closed', Config.TimeOpen, Config.TimeClosed),
@@ -135,6 +134,7 @@ RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
         end
     end
 
+    -- Main Context Menu
     lib.registerContext({
         id = 'pawn_main_menu',
         title = locale('menus.main_header'),
@@ -142,12 +142,14 @@ RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
             {
                 title = locale('menus.sell_header'),
                 description = locale('menus.sell_txt'),
+                icon = 'fas fa-hand-holding-usd',
                 event = 'qb-pawnshop:client:openPawn',
                 args = { shopIndex = shopIndex }
             },
             {
                 title = "Buy Items",
-                description = "Purchase second-hand items from the shop",
+                description = "Purchase second-hand items from this shop",
+                icon = 'fas fa-shopping-basket',
                 event = 'qb-pawnshop:client:openBuyMenu',
                 args = { shopIndex = shopIndex }
             }
@@ -161,6 +163,7 @@ RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
     local shop = Config.PawnLocation[shopIndex]
     local shopInventory = shop.inventory or {}
 
+    -- Multi-callback await for performance
     local inventory = lib.callback.await('qb-pawnshop:server:getInv', false)
     local shopData = lib.callback.await('qb-pawnshop:server:getShopData', false, shopIndex, shopInventory)
     
@@ -174,11 +177,12 @@ RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
                 local currentBuyPrice = shopData[v.name].buyPrice
                 options[#options + 1] = {
                     title = v.label,
-                    description = string.format("Price: $%s | Shop Stock: %s", currentBuyPrice, shopData[v.name].stock),
+                    description = string.format("Shop buys for: **$%s**\nShop Stock: **%s**", currentBuyPrice, shopData[v.name].stock),
+                    icon = 'fas fa-arrow-right',
                     event = 'qb-pawnshop:client:pawnitems',
                     args = {
                         label = v.label,
-                        price = itemData.price, -- Base price
+                        price = itemData.price, -- Base price for server calculation
                         name = v.name,
                         count = v.count,
                         shopIndex = shopIndex
@@ -189,11 +193,7 @@ RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
     end
 
     if #options == 0 then
-        lib.notify({
-            title = locale('menus.main_header'),
-            description = locale('notifications.no_items'),
-            type = 'error'
-        })
+        lib.notify({ title = locale('menus.main_header'), description = locale('notifications.no_items'), type = 'error' })
         return
     end
 
@@ -219,7 +219,8 @@ RegisterNetEvent('qb-pawnshop:client:openBuyMenu', function(data)
         if stockData and stockData.stock > 0 then
             options[#options + 1] = {
                 title = QBCore.Shared.Items[item.name].label,
-                description = string.format("Price: $%s | Stock: %s", stockData.sellPrice, stockData.stock),
+                description = string.format("Buy for: **$%s**\nAvailable: **%s**", stockData.sellPrice, stockData.stock),
+                icon = 'fas fa-tag',
                 event = 'qb-pawnshop:client:buyItems',
                 args = {
                     name = item.name,
@@ -251,24 +252,20 @@ RegisterNetEvent('qb-pawnshop:client:pawnitems', function(item)
         {
             type = 'number',
             label = locale('inputs.amount', item.count),
-            description = item.label,
+            description = ("Selling %s"):format(item.label),
             min = 1,
             max = item.count,
             default = 1
         }
     })
 
-    if not input then return end
-    local amount = tonumber(input[1])
+    if not input or not input[1] then return end
+    local amount = math.floor(tonumber(input[1]))
 
-    if amount and amount > 0 then
-        if amount <= item.count then
-            TriggerServerEvent('qb-pawnshop:server:sellPawnItems', item.shopIndex, item.name, amount, item.price)
-        else
-            lib.notify({ description = locale('notifications.no_items'), type = 'error' })
-        end
+    if amount > 0 and amount <= item.count then
+        TriggerServerEvent('qb-pawnshop:server:sellPawnItems', item.shopIndex, item.name, amount, item.price)
     else
-        lib.notify({ description = locale('notifications.negative'), type = 'error' })
+        lib.notify({ description = "Invalid amount", type = 'error' })
     end
 end)
 
@@ -277,17 +274,17 @@ RegisterNetEvent('qb-pawnshop:client:buyItems', function(item)
         {
             type = 'number',
             label = "Amount to buy",
-            description = string.format("Available: %s", item.stock),
+            description = ("Available stock: %s"):format(item.stock),
             min = 1,
             max = item.stock,
             default = 1
         }
     })
 
-    if not input then return end
-    local amount = tonumber(input[1])
+    if not input or not input[1] then return end
+    local amount = math.floor(tonumber(input[1]))
 
-    if amount and amount > 0 and amount <= item.stock then
+    if amount > 0 and amount <= item.stock then
         TriggerServerEvent('qb-pawnshop:server:buyPawnItems', item.shopIndex, item.name, amount, item.price)
     else
         lib.notify({ description = "Invalid amount or not enough stock", type = 'error' })
