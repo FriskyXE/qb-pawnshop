@@ -1,5 +1,4 @@
 local QBCore = exports['qb-core']:GetCoreObject()
-local SecurityToken = nil
 
 -- Handle item selling to shop
 RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, itemName, itemAmount, basePrice)
@@ -13,6 +12,14 @@ RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, 
         return
     end
 
+    -- Distance check
+    local playerCoords = GetEntityCoords(GetPlayerPed(src))
+    local shopCoords = Config.PawnLocation[shopIndex].locations[1]
+    if #(playerCoords - shopCoords) > 10.0 then
+        exploitBan(src, 'sellPawnItems Distance Exploit')
+        return
+    end
+
     local buyPrice, _ = calculatePrices(shopIndex, itemName, basePrice)
     local totalPrice = (tonumber(itemAmount) * buyPrice)
     local itemLabel = exports.ox_inventory:GetItem(src, itemName).label
@@ -20,6 +27,9 @@ RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, 
     if exports.ox_inventory:RemoveItem(src, itemName, itemAmount) then
         Player.Functions.AddMoney('cash', totalPrice, 'pawnshop-sell')
         updateStock(shopIndex, itemName, itemAmount)
+        
+        -- Log sale for Provenance
+        logSale(shopIndex, itemName, Player.PlayerData.charinfo.firstname .. " " .. Player.PlayerData.charinfo.lastname, Player.PlayerData.citizenid, buyPrice)
         
         TriggerClientEvent('ox_lib:notify', src, { title = locale('menus.main_header'), description = locale('notifications.sold', itemAmount, itemLabel, totalPrice), type = 'success' })
         discordLog("sales", "💰 ITEM SOLD", string.format("**%s** (ID: %s) sold **%sx %s** for **$%s** at Shop #%s", GetPlayerName(src), src, itemAmount, itemLabel, totalPrice, shopIndex), 3066993)
@@ -43,6 +53,14 @@ RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, i
         return
     end
 
+    -- Distance check
+    local playerCoords = GetEntityCoords(GetPlayerPed(src))
+    local shopCoords = Config.PawnLocation[shopIndex].locations[1]
+    if #(playerCoords - shopCoords) > 10.0 then
+        exploitBan(src, 'buyPawnItems Distance Exploit')
+        return
+    end
+
     local currentStock = getStock(shopIndex, itemName)
     if currentStock < itemAmount then
         TriggerClientEvent('ox_lib:notify', src, { description = "Not enough stock in shop", type = 'error' })
@@ -54,8 +72,15 @@ RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, i
 
     if Player.PlayerData.money.cash >= totalPrice then
         if exports.ox_inventory:CanCarryItem(src, itemName, itemAmount) then
+            -- Fetch Provenance Data
+            local latestSeller = getLatestSeller(shopIndex, itemName)
+            local metadata = {}
+            if latestSeller then
+                metadata.description = "Previously Owned By: " .. latestSeller
+            end
+
             Player.Functions.RemoveMoney('cash', totalPrice, 'pawnshop-buy')
-            exports.ox_inventory:AddItem(src, itemName, itemAmount)
+            exports.ox_inventory:AddItem(src, itemName, itemAmount, metadata)
             updateStock(shopIndex, itemName, -itemAmount)
             
             TriggerClientEvent('ox_lib:notify', src, { title = locale('menus.main_header'), description = string.format("You bought %sx %s for $%s", itemAmount, QBCore.Shared.Items[itemName].label, totalPrice), type = 'success' })

@@ -29,12 +29,26 @@ end
 
 --- Creates stocks table and loads existing data
 MySQL.ready(function()
+    -- Stock Table
     MySQL.query([[
         CREATE TABLE IF NOT EXISTS pawnshop_stocks (
             shop_id INT NOT NULL,
             item_name VARCHAR(50) NOT NULL,
             count INT DEFAULT 0,
             PRIMARY KEY (shop_id, item_name)
+        )
+    ]])
+
+    -- Sales History Table (For Provenance)
+    MySQL.query([[
+        CREATE TABLE IF NOT EXISTS pawnshop_sales_history (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            shop_id INT NOT NULL,
+            item_name VARCHAR(50) NOT NULL,
+            seller_name VARCHAR(100) NOT NULL,
+            seller_citizenid VARCHAR(50) NOT NULL,
+            price INT NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ]])
 
@@ -66,6 +80,26 @@ function updateStock(shopId, itemName, amount)
         shopId, itemName, ShopStocks[shopId][itemName], ShopStocks[shopId][itemName]
     })
 end
+
+-- [[ Provenance Helpers ]]
+
+function logSale(shopId, itemName, sellerName, sellerCitizenId, price)
+    MySQL.prepare('INSERT INTO pawnshop_sales_history (shop_id, item_name, seller_name, seller_citizenid, price) VALUES (?, ?, ?, ?, ?)', {
+        shopId, itemName, sellerName, sellerCitizenId, price
+    })
+end
+
+function getLatestSeller(shopId, itemName)
+    local result = MySQL.query.await('SELECT seller_name FROM pawnshop_sales_history WHERE shop_id = ? AND item_name = ? ORDER BY timestamp DESC LIMIT 1', {
+        shopId, itemName
+    })
+    if result and result[1] then
+        return result[1].seller_name
+    end
+    return nil
+end
+
+-- [[ Calculation Helpers ]]
 
 function calculatePrices(shopId, itemName, basePrice)
     local buyPrice = basePrice
