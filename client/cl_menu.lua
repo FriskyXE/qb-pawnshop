@@ -1,10 +1,4 @@
 local QBCore = exports['qb-core']:GetCoreObject()
-local SecurityToken = nil
-
--- Fetch security token on start
-CreateThread(function()
-    SecurityToken = lib.callback.await('qb-pawnshop:server:getToken', false)
-end)
 
 RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
     local shopIndex = data and data.shopIndex or 1
@@ -16,25 +10,30 @@ RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
         end
     end
 
+    local options = {
+        {
+            title = locale('menus.sell_header'),
+            description = locale('menus.sell_txt'),
+            icon = 'fas fa-hand-holding-usd',
+            event = 'qb-pawnshop:client:openPawn',
+            args = { shopIndex = shopIndex }
+        }
+    }
+
+    if Config.EnableBuy then
+        options[#options + 1] = {
+            title = "Buy Items",
+            description = "Purchase second-hand items from this shop",
+            icon = 'fas fa-shopping-basket',
+            event = 'qb-pawnshop:client:openBuyMenu',
+            args = { shopIndex = shopIndex }
+        }
+    end
+
     lib.registerContext({
         id = 'pawn_main_menu',
         title = locale('menus.main_header'),
-        options = {
-            {
-                title = locale('menus.sell_header'),
-                description = locale('menus.sell_txt'),
-                icon = 'fas fa-hand-holding-usd',
-                event = 'qb-pawnshop:client:openPawn',
-                args = { shopIndex = shopIndex }
-            },
-            {
-                title = "Buy Items",
-                description = "Purchase second-hand items from this shop",
-                icon = 'fas fa-shopping-basket',
-                event = 'qb-pawnshop:client:openBuyMenu',
-                args = { shopIndex = shopIndex }
-            }
-        }
+        options = options
     })
     lib.showContext('pawn_main_menu')
 end)
@@ -75,6 +74,7 @@ RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
 end)
 
 RegisterNetEvent('qb-pawnshop:client:openBuyMenu', function(data)
+    if not Config.EnableBuy then return end
     local shopIndex = data and data.shopIndex or 1
     local shop = Config.PawnLocation[shopIndex]
     local shopInventory = shop.inventory or {}
@@ -117,6 +117,7 @@ RegisterNetEvent('qb-pawnshop:client:pawnitems', function(item)
 end)
 
 RegisterNetEvent('qb-pawnshop:client:buyItems', function(item)
+    if not Config.EnableBuy then return end
     local input = lib.inputDialog("Purchase Item", {
         { type = 'number', label = "Amount to buy", description = ("Available stock: %s"):format(item.stock), min = 1, max = item.stock, default = 1 }
     })

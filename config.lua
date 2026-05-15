@@ -1,15 +1,36 @@
 Config = {}
 
 -- [[ General Settings ]] --
-Config.UseTimes = false       -- Set to false if you want the pawnshop open 24/7
-Config.TimeOpen = 7           -- Opening Time (GTA Hour)
-Config.TimeClosed = 17        -- Closing Time (GTA Hour)
+Config.UseTimes = false          -- Set to false if you want the pawnshop open 24/7
+Config.TimeOpen = 7              -- Opening Time (GTA Hour)
+Config.TimeClosed = 17           -- Closing Time (GTA Hour)
+Config.DistanceExploit = 10.0    -- Distance check for events (Security)
 
--- [[ Feature Settings ]] --
-Config.Webhook = ""           -- Discord Webhook URL for logs
-Config.SellMargin = 1.3       -- Profit Margin (1.3 = 30% profit) for players buying from shop
-Config.DynamicPriceScale = 0.05 -- Price drop percentage (0.05 = 5%) for each item in shop stock
-Config.MinPricePercent = 0.5  -- Minimum price floor (0.5 = 50% of base price)
+-- [[ Feature Toggles ]] --
+Config.EnableBuy = true          -- Enable/Disable Second-hand system (Players buying from shop)
+Config.EnableDynamicPrice = true -- Enable/Disable Dynamic Price calculation based on stock
+Config.EnableDoorLock = true     -- Enable/Disable ox_doorlock integration
+
+-- [[ Webhook Settings ]] --
+Config.Webhooks = {
+    sales = "",      -- Log when players sell items to the shop
+    purchases = "",  -- Log when players buy items from the shop
+    security = "",   -- Log exploit attempts and bans
+}
+
+-- [[ Price & Stock Settings ]] --
+Config.SellMargin = 1.3          -- Profit Margin (1.3 = 30% profit) for players buying from shop
+Config.DynamicPriceScale = 0.05    -- Price drop percentage (0.05 = 5%) for each item in shop stock
+Config.MinPricePercent = 0.5     -- Minimum price floor (0.5 = 50% of base price)
+
+-- [[ UI & TextUI Settings ]] --
+Config.TextUI = {
+    position = "left-center",
+    icon = "hand",
+    color = "white",
+    backgroundColor = "#48BB78",
+    borderRadius = 0
+}
 
 -- [[ Shop Locations ]] --
 Config.PawnLocation = {
@@ -18,7 +39,8 @@ Config.PawnLocation = {
 		blip = {
 			id = 59, 
             colour = 69, 
-            scale = 0.8
+            scale = 0.8,
+            label = "Pawn Shop"
 		}, 
         -- Shop-Specific Inventory & Base Prices
         inventory = {

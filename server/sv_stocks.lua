@@ -38,6 +38,8 @@ function updateStock(shopId, itemName, amount)
 end
 
 function calculatePrices(shopId, itemName, basePrice)
+    if not Config.EnableDynamicPrice then return basePrice, math.floor(basePrice * Config.SellMargin) end
+    
     local stock = getStock(shopId, itemName)
     local buyPrice = basePrice * (1.0 - (stock * Config.DynamicPriceScale))
     local minPrice = basePrice * Config.MinPricePercent
