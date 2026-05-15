@@ -8,6 +8,7 @@ Just a clean, simplified rework of the classic pawnshop script. I stripped out t
 - **Smart Interactions:** It handles Peds and Zones automatically. If you want a Ped, put it in the config. If you don't, it just makes a box zone with TextUI. Easy.
 - **Per-Location Shops:** You can set up different items for different shops. Want one shop to only buy jewelry and another to buy electronics? You can do that.
 - **Better Locales:** Everything is in JSON now. (English and Thai included).
+- **Doorlock Integration:** Automatically locks and unlocks doors using `ox_doorlock` based on shop operating hours (when `Config.UseTimes` is enabled).
 
 ## Requirements
 You'll need these installed for the script to work:

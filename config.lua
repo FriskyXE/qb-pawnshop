@@ -22,6 +22,8 @@ Config.PawnLocation = {
 			{ name = 'laptop', price = math.random(50, 100) },
 		}, locations = {
 			vec3(25.7, -1347.3, 29.49),
+		}, doors = {
+			-- 1, 2 -- Add door IDs from ox_doorlock here
 		}, targets = {
 			-- Example Zone
 			-- { loc = vec3(25.06, -1347.32, 29.5), size = vec3(2, 2, 2), heading = 0.0, distance = 1.5 },
