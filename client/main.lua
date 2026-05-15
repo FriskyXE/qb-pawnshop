@@ -103,6 +103,23 @@ AddEventHandler('onResourceStop', function(resource)
     end
 end)
 
+local lastDoorState = nil
+if Config.UseTimes then
+    CreateThread(function()
+        while true do
+            local hour = GetClockHours()
+            local isClosed = hour < Config.TimeOpen or hour >= Config.TimeClosed
+            local newState = isClosed and 1 or 0 -- 1 = Locked, 0 = Unlocked
+
+            if newState ~= lastDoorState then
+                lastDoorState = newState
+                TriggerServerEvent('qb-pawnshop:server:syncDoors', newState)
+            end
+            Wait(5000)
+        end
+    end)
+end
+
 RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
     local shopIndex = data and data.shopIndex or 1
     local shop = Config.PawnLocation[shopIndex]

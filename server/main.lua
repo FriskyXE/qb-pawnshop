@@ -56,21 +56,12 @@ lib.callback.register('qb-pawnshop:server:getInv', function(source)
     return inventory
 end)
 
-if Config.UseTimes then
-    CreateThread(function()
-        while true do
-            local hour = os.date('*t').hour
-            local isClosed = hour < Config.TimeOpen or hour >= Config.TimeClosed
-            local state = isClosed and 1 or 0 -- 1 = Locked, 0 = Unlocked
-
-            for _, shop in pairs(Config.PawnLocation) do
-                if shop.doors then
-                    for _, doorId in pairs(shop.doors) do
-                        exports.ox_doorlock:setDoorState(doorId, state)
-                    end
-                end
+RegisterNetEvent('qb-pawnshop:server:syncDoors', function(state)
+    for _, shop in pairs(Config.PawnLocation) do
+        if shop.doors then
+            for _, doorId in pairs(shop.doors) do
+                exports.ox_doorlock:setDoorState(doorId, state)
             end
-            Wait(60000) -- Check every minute
         end
-    end)
-end
+    end
+end)
