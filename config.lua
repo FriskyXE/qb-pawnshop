@@ -23,15 +23,6 @@ Config.SellMargin = 1.3          -- Profit Margin (1.3 = 30% profit) for players
 Config.DynamicPriceScale = 0.05    -- Price drop percentage (0.05 = 5%) for each item in shop stock
 Config.MinPricePercent = 0.5     -- Minimum price floor (0.5 = 50% of base price)
 
--- [[ UI & TextUI Settings ]] --
-Config.TextUI = {
-    position = "left-center",
-    icon = "hand",
-    color = "white",
-    backgroundColor = "#48BB78",
-    borderRadius = 0
-}
-
 -- [[ Shop Locations ]] --
 Config.PawnLocation = {
     [1] = {
