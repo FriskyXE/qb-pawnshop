@@ -72,6 +72,9 @@ end
 
 CreateThread(initInteractions)
 
+-- Hide NUI on start
+SendNUIMessage({ action = 'setVisible', data = { visible = false } })
+
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     for i = 1, #Peds do DeletePed(Peds[i]) end

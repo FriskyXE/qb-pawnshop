@@ -24,6 +24,10 @@ client_scripts {
     'client/cl_time.lua'
 }
 
+ui_page 'web/dist/index.html'
+
 files {
-  'locales/*.json'
+  'locales/*.json',
+  'web/dist/index.html',
+  'web/dist/**/*'
 }
