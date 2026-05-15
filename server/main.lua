@@ -1,4 +1,73 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local ShopStocks = {}
+
+-- Database Initialization
+MySQL.ready(function()
+    MySQL.query([[
+        CREATE TABLE IF NOT EXISTS pawnshop_stocks (
+            shop_id INT NOT NULL,
+            item_name VARCHAR(50) NOT NULL,
+            count INT DEFAULT 0,
+            PRIMARY KEY (shop_id, item_name)
+        )
+    ]])
+
+    local results = MySQL.query.await('SELECT * FROM pawnshop_stocks')
+    if results then
+        for _, row in pairs(results) do
+            if not ShopStocks[row.shop_id] then ShopStocks[row.shop_id] = {} end
+            ShopStocks[row.shop_id][row.item_name] = row.count
+        end
+    end
+end)
+
+-- Helper: Get Stock
+local function getStock(shopId, itemName)
+    if not ShopStocks[shopId] then ShopStocks[shopId] = {} end
+    return ShopStocks[shopId][itemName] or 0
+end
+
+-- Helper: Update Stock
+local function updateStock(shopId, itemName, amount)
+    if not ShopStocks[shopId] then ShopStocks[shopId] = {} end
+    ShopStocks[shopId][itemName] = (ShopStocks[shopId][itemName] or 0) + amount
+    if ShopStocks[shopId][itemName] < 0 then ShopStocks[shopId][itemName] = 0 end
+
+    MySQL.prepare('INSERT INTO pawnshop_stocks (shop_id, item_name, count) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE count = ?', {
+        shopId, itemName, ShopStocks[shopId][itemName], ShopStocks[shopId][itemName]
+    })
+end
+
+-- Helper: Calculate Prices
+local function calculatePrices(shopId, itemName, basePrice)
+    local stock = getStock(shopId, itemName)
+    
+    -- Buy Price (What shop pays player) - decreases as stock increases
+    local buyPrice = basePrice * (1.0 - (stock * Config.DynamicPriceScale))
+    local minPrice = basePrice * Config.MinPricePercent
+    if buyPrice < minPrice then buyPrice = minPrice end
+    
+    -- Sell Price (What player pays shop) - higher than buy price
+    local sellPrice = math.floor(buyPrice * Config.SellMargin)
+    
+    return math.floor(buyPrice), sellPrice
+end
+
+-- Helper: Discord Logs
+local function discordLog(title, message, color)
+    if not Config.Webhook or Config.Webhook == "" then return end
+    local embed = {
+        {
+            ["color"] = color,
+            ["title"] = "**" .. title .. "**",
+            ["description"] = message,
+            ["footer"] = {
+                ["text"] = os.date("%c"),
+            },
+        }
+    }
+    PerformHttpRequest(Config.Webhook, function(err, text, headers) end, 'POST', json.encode({ username = "Pawn Shop", embeds = embed }), { ['Content-Type'] = 'application/json' })
+end
 
 local function exploitBan(id, reason)
     MySQL.insert('INSERT INTO bans (name, license, discord, ip, reason, expire, bannedby) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -13,34 +82,29 @@ local function exploitBan(id, reason)
         })
     TriggerEvent('qb-log:server:CreateLog', 'pawnshop', 'Player Banned', 'red',
         string.format('%s was banned by %s for %s', GetPlayerName(id), 'qb-pawnshop', reason), true)
+    discordLog("CHEATER BANNED", string.format("Player %s banned for %s", GetPlayerName(id), reason), 15158332)
     DropPlayer(id, 'You were permanently banned by the server for: Exploiting')
 end
 
-RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(itemName, itemAmount, itemPrice)
+-- Sell Event (Updated)
+RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(shopIndex, itemName, itemAmount, basePrice)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
-    local totalPrice = (tonumber(itemAmount) * itemPrice)
-    local playerCoords = GetEntityCoords(GetPlayerPed(src))
-    local dist
-    for _, value in pairs(Config.PawnLocation) do
-        dist = #(playerCoords - value.coords)
-        if #(playerCoords - value.coords) < 2 then
-            dist = #(playerCoords - value.coords)
-            break
-        end
-    end
-    if dist > 5 then
-        exploitBan(src, 'sellPawnItems Exploiting')
-        return
-    end
+    local buyPrice, _ = calculatePrices(shopIndex, itemName, basePrice)
+    local totalPrice = (tonumber(itemAmount) * buyPrice)
+    
     local itemLabel = exports.ox_inventory:GetItem(src, itemName).label
     if exports.ox_inventory:RemoveItem(src, itemName, tonumber(itemAmount)) then
-        Player.Functions.AddMoney('cash', totalPrice, 'qb-pawnshop:server:sellPawnItems')
+        Player.Functions.AddMoney('cash', totalPrice, 'pawnshop-sell')
+        updateStock(shopIndex, itemName, tonumber(itemAmount))
+        
         TriggerClientEvent('ox_lib:notify', src, {
             title = locale('menus.main_header'),
             description = locale('notifications.sold', tonumber(itemAmount), itemLabel, totalPrice),
             type = 'success'
         })
+        
+        discordLog("ITEM SOLD", string.format("**%s** (ID: %s) sold **%sx %s** for **$%s** at Shop #%s", GetPlayerName(src), src, itemAmount, itemLabel, totalPrice, shopIndex), 3066993)
     else
         TriggerClientEvent('ox_lib:notify', src, {
             title = locale('menus.main_header'),
@@ -48,12 +112,61 @@ RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(itemName, itemAmou
             type = 'error'
         })
     end
-    TriggerClientEvent('qb-pawnshop:client:openMenu', src)
+    TriggerClientEvent('qb-pawnshop:client:openMenu', src, { shopIndex = shopIndex })
+end)
+
+-- Buy Event (New)
+RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(shopIndex, itemName, itemAmount, basePrice)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    local currentStock = getStock(shopIndex, itemName)
+    
+    if currentStock < tonumber(itemAmount) then
+        TriggerClientEvent('ox_lib:notify', src, { description = "Not enough stock in shop", type = 'error' })
+        return
+    end
+
+    local _, sellPrice = calculatePrices(shopIndex, itemName, basePrice)
+    local totalPrice = (tonumber(itemAmount) * sellPrice)
+
+    if Player.PlayerData.money.cash >= totalPrice then
+        if exports.ox_inventory:CanCarryItem(src, itemName, itemAmount) then
+            Player.Functions.RemoveMoney('cash', totalPrice, 'pawnshop-buy')
+            exports.ox_inventory:AddItem(src, itemName, itemAmount)
+            updateStock(shopIndex, itemName, -tonumber(itemAmount))
+            
+            TriggerClientEvent('ox_lib:notify', src, {
+                title = locale('menus.main_header'),
+                description = string.format("You bought %sx %s for $%s", itemAmount, QBCore.Shared.Items[itemName].label, totalPrice),
+                type = 'success'
+            })
+            
+            discordLog("ITEM BOUGHT", string.format("**%s** (ID: %s) bought **%sx %s** for **$%s** at Shop #%s", GetPlayerName(src), src, itemAmount, QBCore.Shared.Items[itemName].label, totalPrice, shopIndex), 3447003)
+        else
+            TriggerClientEvent('ox_lib:notify', src, { description = "Inventory full", type = 'error' })
+        end
+    else
+        TriggerClientEvent('ox_lib:notify', src, { description = "Not enough cash", type = 'error' })
+    end
+    TriggerClientEvent('qb-pawnshop:client:openMenu', src, { shopIndex = shopIndex })
 end)
 
 lib.callback.register('qb-pawnshop:server:getInv', function(source)
-    local inventory = exports.ox_inventory:GetInventoryItems(source)
-    return inventory
+    return exports.ox_inventory:GetInventoryItems(source)
+end)
+
+-- New Callback to get dynamic prices and stock
+lib.callback.register('qb-pawnshop:server:getShopData', function(source, shopIndex, inventory)
+    local data = {}
+    for _, item in pairs(inventory) do
+        local buy, sell = calculatePrices(shopIndex, item.name, item.price)
+        data[item.name] = {
+            buyPrice = buy,
+            sellPrice = sell,
+            stock = getStock(shopIndex, item.name)
+        }
+    end
+    return data
 end)
 
 RegisterNetEvent('qb-pawnshop:server:syncDoors', function(state)

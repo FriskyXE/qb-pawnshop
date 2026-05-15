@@ -125,66 +125,63 @@ RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
     local shop = Config.PawnLocation[shopIndex]
 
     if Config.UseTimes then
-        if GetClockHours() >= Config.TimeOpen and GetClockHours() <= Config.TimeClosed then
-            lib.registerContext({
-                id = 'pawn_main_menu',
-                title = locale('menus.main_header'),
-                options = {
-                    {
-                        title = locale('menus.sell_header'),
-                        description = locale('menus.sell_txt'),
-                        event = 'qb-pawnshop:client:openPawn',
-                        args = { shopIndex = shopIndex }
-                    }
-                }
-            })
-            lib.showContext('pawn_main_menu')
-        else
+        if GetClockHours() < Config.TimeOpen or GetClockHours() >= Config.TimeClosed then
             lib.notify({
                 title = locale('menus.main_header'),
                 description = locale('notifications.pawn_closed', Config.TimeOpen, Config.TimeClosed),
                 type = 'error'
             })
+            return
         end
-    else
-        lib.registerContext({
-            id = 'pawn_main_menu',
-            title = locale('menus.main_header'),
-            options = {
-                {
-                    title = locale('menus.sell_header'),
-                    description = locale('menus.sell_txt'),
-                    event = 'qb-pawnshop:client:openPawn',
-                    args = { shopIndex = shopIndex }
-                }
-            }
-        })
-        lib.showContext('pawn_main_menu')
     end
+
+    lib.registerContext({
+        id = 'pawn_main_menu',
+        title = locale('menus.main_header'),
+        options = {
+            {
+                title = locale('menus.sell_header'),
+                description = locale('menus.sell_txt'),
+                event = 'qb-pawnshop:client:openPawn',
+                args = { shopIndex = shopIndex }
+            },
+            {
+                title = "Buy Items",
+                description = "Purchase second-hand items from the shop",
+                event = 'qb-pawnshop:client:openBuyMenu',
+                args = { shopIndex = shopIndex }
+            }
+        }
+    })
+    lib.showContext('pawn_main_menu')
 end)
 
 RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
     local shopIndex = data and data.shopIndex or 1
     local shop = Config.PawnLocation[shopIndex]
-    local shopInventory = shop.inventory or Config.PawnItems
+    local shopInventory = shop.inventory or {}
 
     local inventory = lib.callback.await('qb-pawnshop:server:getInv', false)
+    local shopData = lib.callback.await('qb-pawnshop:server:getShopData', false, shopIndex, shopInventory)
+    
     if not inventory then return end
     
     local options = {}
     for _, v in pairs(inventory) do
         for i = 1, #shopInventory do
             local itemData = shopInventory[i]
-            if v.name == (itemData.item or itemData.name) then
+            if v.name == itemData.name then
+                local currentBuyPrice = shopData[v.name].buyPrice
                 options[#options + 1] = {
                     title = v.label,
-                    description = locale('menus.item_price', itemData.price),
+                    description = string.format("Price: $%s | Shop Stock: %s", currentBuyPrice, shopData[v.name].stock),
                     event = 'qb-pawnshop:client:pawnitems',
                     args = {
                         label = v.label,
-                        price = itemData.price,
+                        price = itemData.price, -- Base price
                         name = v.name,
-                        count = v.count
+                        count = v.count,
+                        shopIndex = shopIndex
                     }
                 }
             end
@@ -209,6 +206,46 @@ RegisterNetEvent('qb-pawnshop:client:openPawn', function(data)
     lib.showContext('pawn_sell_menu')
 end)
 
+RegisterNetEvent('qb-pawnshop:client:openBuyMenu', function(data)
+    local shopIndex = data and data.shopIndex or 1
+    local shop = Config.PawnLocation[shopIndex]
+    local shopInventory = shop.inventory or {}
+
+    local shopData = lib.callback.await('qb-pawnshop:server:getShopData', false, shopIndex, shopInventory)
+    
+    local options = {}
+    for _, item in pairs(shopInventory) do
+        local stockData = shopData[item.name]
+        if stockData and stockData.stock > 0 then
+            options[#options + 1] = {
+                title = QBCore.Shared.Items[item.name].label,
+                description = string.format("Price: $%s | Stock: %s", stockData.sellPrice, stockData.stock),
+                event = 'qb-pawnshop:client:buyItems',
+                args = {
+                    name = item.name,
+                    label = QBCore.Shared.Items[item.name].label,
+                    price = item.price, -- Base Price
+                    stock = stockData.stock,
+                    shopIndex = shopIndex
+                }
+            }
+        end
+    end
+
+    if #options == 0 then
+        lib.notify({ description = "Shop has no stock right now", type = 'error' })
+        return
+    end
+
+    lib.registerContext({
+        id = 'pawn_buy_menu',
+        title = "Buy Second-hand Items",
+        menu = 'pawn_main_menu',
+        options = options
+    })
+    lib.showContext('pawn_buy_menu')
+end)
+
 RegisterNetEvent('qb-pawnshop:client:pawnitems', function(item)
     local input = lib.inputDialog(locale('inputs.sell_header'), {
         {
@@ -226,17 +263,33 @@ RegisterNetEvent('qb-pawnshop:client:pawnitems', function(item)
 
     if amount and amount > 0 then
         if amount <= item.count then
-            TriggerServerEvent('qb-pawnshop:server:sellPawnItems', item.name, amount, item.price)
+            TriggerServerEvent('qb-pawnshop:server:sellPawnItems', item.shopIndex, item.name, amount, item.price)
         else
-            lib.notify({
-                description = locale('notifications.no_items'),
-                type = 'error'
-            })
+            lib.notify({ description = locale('notifications.no_items'), type = 'error' })
         end
     else
-        lib.notify({
-            description = locale('notifications.negative'),
-            type = 'error'
-        })
+        lib.notify({ description = locale('notifications.negative'), type = 'error' })
+    end
+end)
+
+RegisterNetEvent('qb-pawnshop:client:buyItems', function(item)
+    local input = lib.inputDialog("Purchase Item", {
+        {
+            type = 'number',
+            label = "Amount to buy",
+            description = string.format("Available: %s", item.stock),
+            min = 1,
+            max = item.stock,
+            default = 1
+        }
+    })
+
+    if not input then return end
+    local amount = tonumber(input[1])
+
+    if amount and amount > 0 and amount <= item.stock then
+        TriggerServerEvent('qb-pawnshop:server:buyPawnItems', item.shopIndex, item.name, amount, item.price)
+    else
+        lib.notify({ description = "Invalid amount or not enough stock", type = 'error' })
     end
 end)

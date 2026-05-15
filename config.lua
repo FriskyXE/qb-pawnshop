@@ -4,6 +4,12 @@ Config.UseTimes = false -- Set to false if you want the pawnshop open 24/7
 Config.TimeOpen = 7 -- Opening Time
 Config.TimeClosed = 17 -- Closing Time
 
+-- New Features Settings
+Config.Webhook = "" -- Discord Webhook URL
+Config.SellMargin = 1.3 -- 30% Profit (Price other players pay to buy items)
+Config.DynamicPriceScale = 0.05 -- Decrease buy price by 5% for every item in stock
+Config.MinPricePercent = 0.5 -- Buy price won't drop below 50% of original
+
 Config.PawnLocation = {
     [1] = {
 		blip = {
@@ -12,14 +18,14 @@ Config.PawnLocation = {
 			{ name = 'burger', price = 10 },
 			{ name = 'water', price = 10 },
 			{ name = 'cola', price = 10 },
-			{ name = 'goldchain', price = math.random(50, 100) },
-			{ name = 'diamond_ring', price = math.random(50, 100) },
-			{ name = 'rolex', price = math.random(50, 100) },
-			{ name = 'tenkgoldchain', price = math.random(50, 100) },
-			{ name = 'tablet', price = math.random(50, 100) },
-			{ name = 'iphone', price = math.random(50, 100) },
-			{ name = 'samsungphone', price = math.random(50, 100) },
-			{ name = 'laptop', price = math.random(50, 100) },
+			{ name = 'goldchain', price = 100 },
+			{ name = 'diamond_ring', price = 250 },
+			{ name = 'rolex', price = 500 },
+			{ name = 'tenkgoldchain', price = 150 },
+			{ name = 'tablet', price = 200 },
+			{ name = 'iphone', price = 600 },
+			{ name = 'samsungphone', price = 400 },
+			{ name = 'laptop', price = 800 },
 		}, locations = {
 			vec3(25.7, -1347.3, 29.49),
 		}, doors = {
