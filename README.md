@@ -22,22 +22,6 @@ You'll need these installed for the script to work:
 2. Make sure it's named `qb-pawnshop`.
 3. Start it in your `server.cfg` after your dependencies.
 
-## Config Tips
-Inside `config.lua`, you can customize everything per location.
-
-**Switching between NPC and Zone:**
-To use a Proximity Zone instead of an NPC, just comment out the `ped` line in your `targets`. The script will detect it's missing and switch to a BoxZone automatically.
-
-```lua
-targets = {
-    { 
-        -- ped = 'mp_m_shopkeep_01', -- Commenting this out enables Zone mode
-        loc = vec3(412.34, 314.81, 103.13), 
-        heading = 207.0 
-    },
-}
-```
-
 ## Support
 This is open-source. Feel free to use and modify it for your server.
 
