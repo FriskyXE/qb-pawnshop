@@ -1,27 +1,39 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local SecurityToken = nil
+
+-- Helper: Find item in shop inventory (Server-side validation)
+local function getBasePrice(shopIndex, itemName)
+    local shop = Config.PawnLocation[shopIndex]
+    if not shop or not shop.inventory then return nil end
+    for _, item in pairs(shop.inventory) do
+        if item.name == itemName then
+            return item.price
+        end
+    end
+    return nil
+end
 
 -- Handle item selling to shop
-RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, itemName, itemAmount, basePrice)
+RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, itemName, itemAmount)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
 
-    -- Token Security Check
+    -- 1. Security Token Check
     if token ~= SecurityToken then
         exploitBan(src, 'sellPawnItems Invalid Security Token')
         return
     end
 
-    -- Distance check
-    local playerCoords = GetEntityCoords(GetPlayerPed(src))
-    local shopCoords = Config.PawnLocation[shopIndex].locations[1]
-    if #(playerCoords - shopCoords) > 10.0 then
-        exploitBan(src, 'sellPawnItems Distance Exploit')
+    -- 2. Shop & Item Validation
+    local basePrice = getBasePrice(shopIndex, itemName)
+    if not basePrice then
+        exploitBan(src, 'sellPawnItems Invalid Item/Shop Price Manipulation')
         return
     end
 
     local buyPrice, _ = calculatePrices(shopIndex, itemName, basePrice)
-    local totalPrice = (tonumber(itemAmount) * buyPrice)
+    local totalPrice = (math.floor(tonumber(itemAmount)) * buyPrice)
     local itemLabel = exports.ox_inventory:GetItem(src, itemName).label
 
     if exports.ox_inventory:RemoveItem(src, itemName, itemAmount) then
@@ -40,24 +52,23 @@ RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, 
 end)
 
 -- Handle item buying from second-hand shop
-RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, itemName, itemAmount, basePrice)
+RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, itemName, itemAmount)
     local src = source
-    if not Config.EnableBuy then return end
+    if not Config.Features.BuyItems then return end
     
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
 
-    -- Token Security Check
+    -- 1. Security Token Check
     if token ~= SecurityToken then
         exploitBan(src, 'buyPawnItems Invalid Security Token')
         return
     end
 
-    -- Distance check
-    local playerCoords = GetEntityCoords(GetPlayerPed(src))
-    local shopCoords = Config.PawnLocation[shopIndex].locations[1]
-    if #(playerCoords - shopCoords) > 10.0 then
-        exploitBan(src, 'buyPawnItems Distance Exploit')
+    -- 2. Shop & Item Validation
+    local basePrice = getBasePrice(shopIndex, itemName)
+    if not basePrice then
+        exploitBan(src, 'buyPawnItems Invalid Item/Shop Price Manipulation')
         return
     end
 
@@ -68,7 +79,7 @@ RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, i
     end
 
     local _, sellPrice = calculatePrices(shopIndex, itemName, basePrice)
-    local totalPrice = (itemAmount * sellPrice)
+    local totalPrice = (math.floor(tonumber(itemAmount)) * sellPrice)
 
     if Player.PlayerData.money.cash >= totalPrice then
         if exports.ox_inventory:CanCarryItem(src, itemName, itemAmount) then

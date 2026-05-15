@@ -1,16 +1,5 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 
-local function toggleNui(visible, shopData)
-    SetNuiFocus(visible, visible)
-    SendNUIMessage({
-        action = 'setVisible',
-        data = {
-            visible = visible,
-            shopData = shopData
-        }
-    })
-end
-
 RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
     local shopIndex = data and data.shopIndex or 1
     if Config.UseTimes then
@@ -32,7 +21,6 @@ RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
         for _, v in pairs(playerInventory) do
             for _, itemData in pairs(shopInventory) do
                 if v.name == itemData.name then
-                    v.basePrice = itemData.price
                     filteredPlayerInv[#filteredPlayerInv + 1] = v
                 end
             end
@@ -52,11 +40,11 @@ RegisterNUICallback('hideUI', function(_, cb)
 end)
 
 RegisterNUICallback('sellItem', function(data, cb)
-    TriggerServerEvent('qb-pawnshop:server:sellPawnItems', SecurityToken, data.shopIndex, data.itemName, data.amount, data.basePrice)
+    TriggerServerEvent('qb-pawnshop:server:sellPawnItems', SecurityToken, data.shopIndex, data.itemName, data.amount)
     cb(true)
 end)
 
 RegisterNUICallback('buyItem', function(data, cb)
-    TriggerServerEvent('qb-pawnshop:server:buyPawnItems', SecurityToken, data.shopIndex, data.itemName, data.amount, data.basePrice)
+    TriggerServerEvent('qb-pawnshop:server:buyPawnItems', SecurityToken, data.shopIndex, data.itemName, data.amount)
     cb(true)
 end)
