@@ -1,58 +1,44 @@
-# qb-pawnshop (Rework)
+# QB-Pawnshop Rework
 
-A modern, optimized pawn shop script for FiveM built for **QB-Core** and fully integrated with the **ox** ecosystem.
+Just a clean, simplified rework of the classic pawnshop script. I stripped out the old stuff and swapped it for the Overextended (ox) ecosystem. It's lighter, faster, and much easier to set up.
 
-## 🚀 Features
+## What's new?
+- **Full ox_lib:** Context menus, input dialogs, and notifications. No more messy UI stuff.
+- **Ox Inventory:** Built to work natively with `ox_inventory` (AddItem/RemoveItem).
+- **Smart Interactions:** It handles Peds and Zones automatically. If you want a Ped, put it in the config. If you don't, it just makes a box zone with TextUI. Easy.
+- **Per-Location Shops:** You can set up different items for different shops. Want one shop to only buy jewelry and another to buy electronics? You can do that.
+- **Better Locales:** Everything is in JSON now. (English and Thai included).
 
-- **ox_lib Integration**: Uses `ox_lib` for high-performance context menus, input dialogs, notifications, and proximity zones.
-- **ox_inventory Support**: Fully compatible with `ox_inventory` native functions and item data structures.
-- **Dynamic Interactions**: 
-  - Supports **ox_target** for immersive NPC interactions.
-  - Automatically falls back to **ox_lib Box Zones** with **TextUI** prompts if a Ped is not configured (or commented out).
-- **Location-Specific Inventories**: Define different items and prices for each pawn shop location.
-- **Categorized Localization**: Support for multiple languages (**English** & **Thai** included) using standard JSON format.
-- **Optimized Performance**: Clean, centralized initialization and automatic resource cleanup.
+## Requirements
+You'll need these installed for the script to work:
+- `qb-core`
+- `ox_lib`
+- `ox_inventory`
+- `ox_target`
 
-## 📦 Dependencies
+## Setup
+1. Drop the folder into your resources.
+2. Make sure it's named `qb-pawnshop`.
+3. Start it in your `server.cfg` after your dependencies.
 
-- [qb-core](https://github.com/qbcore-framework/qb-core)
-- [ox_lib](https://github.com/overextended/ox_lib)
-- [ox_inventory](https://github.com/overextended/ox_inventory)
-- [ox_target](https://github.com/overextended/ox_target)
+## Config Tips
+Inside `config.lua`, you can customize everything per location.
 
-## 🛠️ Installation
+**Switching between NPC and Zone:**
+To use a Proximity Zone instead of an NPC, just comment out the `ped` line in your `targets`. The script will detect it's missing and switch to a BoxZone automatically.
 
-1. Clone or download this repository into your `resources` folder.
-2. Ensure the folder is named `qb-pawnshop`.
-3. Add `ensure qb-pawnshop` to your `server.cfg` **after** `ox_lib`, `ox_inventory`, and `ox_target`.
-
-## ⚙️ Configuration
-
-The script is highly customizable via `config.lua`:
-
-- **PawnLocation**: Set up blips, NPC peds, interaction zones, and specific shop inventories.
-- **UseTimes**: Toggle whether shops should only be open during specific GTA hours.
-- **TimeOpen/TimeClosed**: Define the operating hours.
-
-### Example Interaction Switch
-To use a Zone instead of an NPC, simply comment out the `ped` line in `config.lua`:
 ```lua
 targets = {
     { 
-        -- ped = 'mp_m_shopkeep_01', -- Comment this to use a Zone
+        -- ped = 'mp_m_shopkeep_01', -- Commenting this out enables Zone mode
         loc = vec3(412.34, 314.81, 103.13), 
         heading = 207.0 
     },
 }
 ```
 
-## 🌍 Localization
+## Support
+This is open-source. Feel free to use and modify it for your server.
 
-Translations are located in the `locales/` directory in JSON format.
-- `en.json`: English
-- `th.json`: Thai (ภาษาไทย)
-
-To add a new language, create a new `.json` file and update your `ox_lib` locale settings.
-
-## 📄 License
-This project is open-source. Feel free to use and modify it for your server.
+---
+*Made with ❤️ for the FiveM community.*
