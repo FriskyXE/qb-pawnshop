@@ -1,4 +1,4 @@
-# qb-pawnshop (Refactored)
+# qb-pawnshop (Rework)
 
 A modern, optimized pawn shop script for FiveM built for **QB-Core** and fully integrated with the **ox** ecosystem.
 
