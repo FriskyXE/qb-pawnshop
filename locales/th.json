@@ -1,0 +1,16 @@
+{
+  "blips.pawnshop": "โรงรับจำนำ",
+  "menus.main_header": "โรงรับจำนำ",
+  "menus.open_pawn": "เปิดโรงรับจำนำ",
+  "menus.sell_header": "ขายไอเทม",
+  "menus.sell_txt": "ขายไอเทมให้กับโรงรับจำนำ",
+  "menus.back": "⬅ กลับ",
+  "menus.item_price": "ราคาขาย $%s",
+  "inputs.sell_header": "โรงรับจำนำ",
+  "inputs.sell_submit": "ขายไอเทม",
+  "inputs.amount": "จำนวนสูงสุด %s",
+  "notifications.pawn_closed": "โรงรับจำนำปิดแล้ว กลับมาใหม่ระหว่าง %s:00 AM - %s:00 PM",
+  "notifications.no_items": "ไอเทมไม่เพียงพอ",
+  "notifications.negative": "กำลังพยายามขายจำนวนติดลบเหรอ?",
+  "notifications.sold": "คุณขาย %s x %s ในราคา $%s"
+}

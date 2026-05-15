@@ -1,0 +1,16 @@
+{
+  "blips.pawnshop": "Pawn Shop",
+  "menus.main_header": "Pawn Shop",
+  "menus.open_pawn": "Open the Pawn Shop",
+  "menus.sell_header": "Sell Items",
+  "menus.sell_txt": "Sell Items To The Pawn Shop",
+  "menus.back": "⬅ Go Back",
+  "menus.item_price": "Selling Price $%s",
+  "inputs.sell_header": "Pawn Shop",
+  "inputs.sell_submit": "Sell Items",
+  "inputs.amount": "Max Amount %s",
+  "notifications.pawn_closed": "Pawnshop is closed. Come back between %s:00 AM - %s:00 PM",
+  "notifications.no_items": "Not enough items",
+  "notifications.negative": "Trying to sell a negative amount?",
+  "notifications.sold": "You have sold %s x %s for $%s"
+}
