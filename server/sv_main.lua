@@ -1,16 +1,15 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local SecurityToken = nil
 
 -- Handle item selling to shop
-RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(shopIndex, itemName, itemAmount, basePrice)
+RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(token, shopIndex, itemName, itemAmount, basePrice)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
 
-    -- Distance check (Security)
-    local playerCoords = GetEntityCoords(GetPlayerPed(src))
-    local shopCoords = Config.PawnLocation[shopIndex].locations[1]
-    if #(playerCoords - shopCoords) > 10.0 then
-        exploitBan(src, 'sellPawnItems Distance Exploit')
+    -- Token Security Check
+    if token ~= SecurityToken then
+        exploitBan(src, 'sellPawnItems Invalid Security Token')
         return
     end
 
@@ -31,10 +30,16 @@ RegisterNetEvent('qb-pawnshop:server:sellPawnItems', function(shopIndex, itemNam
 end)
 
 -- Handle item buying from second-hand shop
-RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(shopIndex, itemName, itemAmount, basePrice)
+RegisterNetEvent('qb-pawnshop:server:buyPawnItems', function(token, shopIndex, itemName, itemAmount, basePrice)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
+
+    -- Token Security Check
+    if token ~= SecurityToken then
+        exploitBan(src, 'buyPawnItems Invalid Security Token')
+        return
+    end
 
     local currentStock = getStock(shopIndex, itemName)
     if currentStock < itemAmount then
@@ -71,4 +76,14 @@ RegisterNetEvent('qb-pawnshop:server:syncDoors', function(state)
             end
         end
     end
+end)
+
+-- Token Generation
+CreateThread(function()
+    SecurityToken = "PawnShop_" .. math.random(100, 999) .. "_" .. math.random(1000, 9999)
+end)
+
+-- Provide token to client via callback
+lib.callback.register('qb-pawnshop:server:getToken', function(source)
+    return SecurityToken
 end)

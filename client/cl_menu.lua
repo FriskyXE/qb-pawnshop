@@ -1,4 +1,10 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local SecurityToken = nil
+
+-- Fetch security token on start
+CreateThread(function()
+    SecurityToken = lib.callback.await('qb-pawnshop:server:getToken', false)
+end)
 
 RegisterNetEvent('qb-pawnshop:client:openMenu', function(data)
     local shopIndex = data and data.shopIndex or 1
@@ -104,7 +110,7 @@ RegisterNetEvent('qb-pawnshop:client:pawnitems', function(item)
     if not input or not input[1] then return end
     local amount = math.floor(tonumber(input[1]))
     if amount > 0 and amount <= item.count then
-        TriggerServerEvent('qb-pawnshop:server:sellPawnItems', item.shopIndex, item.name, amount, item.price)
+        TriggerServerEvent('qb-pawnshop:server:sellPawnItems', SecurityToken, item.shopIndex, item.name, amount, item.price)
     else
         lib.notify({ description = "Invalid amount", type = 'error' })
     end
@@ -117,7 +123,7 @@ RegisterNetEvent('qb-pawnshop:client:buyItems', function(item)
     if not input or not input[1] then return end
     local amount = math.floor(tonumber(input[1]))
     if amount > 0 and amount <= item.stock then
-        TriggerServerEvent('qb-pawnshop:server:buyPawnItems', item.shopIndex, item.name, amount, item.price)
+        TriggerServerEvent('qb-pawnshop:server:buyPawnItems', SecurityToken, item.shopIndex, item.name, amount, item.price)
     else
         lib.notify({ description = "Invalid amount or not enough stock", type = 'error' })
     end
